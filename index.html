@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>வானிலை | Weather App</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Noto+Sans+Tamil:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(to right, #1e3c72, #2a5298);
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            transition: background 0.5s;
+        }
+        .container {
+            width: 90%;
+            max-width: 400px;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            margin: 20px auto;
+            text-align: center;
+        }
+        .weather-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+        }
+        .language-toggle, .theme-toggle {
+            padding: 12px 16px;
+            font-size: 1em;
+            display: block;
+            width: 100%;
+            max-width: 200px;
+            margin: 10px auto;
+            cursor: pointer;
+            border-radius: 5px;
+            background: #ffeb3b;
+            color: black;
+            border: none;
+        }
+        .loading {
+            display: none;
+            font-size: 1.2em;
+            color: yellow;
+        }
+        .dark-mode {
+            background: #121212;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body>
+    <button class="language-toggle" onclick="toggleLanguage()">🌐 தமிழ் / English</button>
+    <button class="theme-toggle" onclick="toggleTheme()">🌙 Toggle Dark Mode</button>
+    <h1 id="title"><i class="fas fa-cloud-sun"></i> Weather App</h1>
+    <p class="loading">Fetching Weather Data... ⏳</p>
+    <div id="weather-container" class="weather-container"></div>
+    
+    <script>
+        const apiKey = "a87594662c33433f92684e6890166cfc";
+        let isTamil = false;
+
+        function toggleLanguage() {
+            isTamil = !isTamil;
+            document.getElementById("title").innerHTML = isTamil ? "<i class='fas fa-cloud-sun'></i> வானிலை" : "<i class='fas fa-cloud-sun'></i> Weather App";
+            fetchWeather();
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle("dark-mode");
+        }
+
+        async function fetchWeather(location = "auto") {
+            document.querySelector(".loading").style.display = "block";
+            let query = location === "auto" ? await getLocation() : location;
+            const url = `https://api.openweathermap.org/data/2.5/forecast?q=${query}&units=metric&appid=${apiKey}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                if (data.cod !== "200") throw new Error("Invalid API response");
+                displayWeather(data);
+            } catch (error) {
+                document.getElementById("weather-container").innerHTML = `<p class='alert'>⚠️ ${isTamil ? "வானிலை தரவு இல்லை" : "Weather data not available"}</p>`;
+            }
+            document.querySelector(".loading").style.display = "none";
+        }
+
+        function displayWeather(data) {
+            const weatherContainer = document.getElementById("weather-container");
+            weatherContainer.innerHTML = "";
+            const temp = data.list[0].main.temp;
+            const weather = data.list[0].weather[0].main;
+            document.body.style.background = temp > 30 ? "#ff5733" : temp > 20 ? "#ffa500" : "#1e3c72";
+            
+            const weatherBox = document.createElement("div");
+            weatherBox.className = "container";
+            weatherBox.innerHTML = `
+                <h2>${data.city.name}</h2>
+                <p>🌡️ Temperature: ${temp}°C</p>
+                <p>💧 Humidity: ${data.list[0].main.humidity}%</p>
+                <p>🌬️ Wind Speed: ${data.list[0].wind.speed} m/s</p>
+                <p>🌧️ Condition: ${weather} <i class="fas fa-${getWeatherIcon(weather)}"></i></p>
+            `;
+            weatherContainer.appendChild(weatherBox);
+        }
+
+        function getWeatherIcon(condition) {
+            const icons = {
+                Clear: "sun",
+                Clouds: "cloud",
+                Rain: "cloud-showers-heavy",
+                Snow: "snowflake",
+                Thunderstorm: "bolt",
+                Drizzle: "cloud-rain",
+                Mist: "smog"
+            };
+            return icons[condition] || "cloud";
+        }
+
+        function getLocation() {
+            return new Promise((resolve) => {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve(`${position.coords.latitude},${position.coords.longitude}`);
+                    },
+                    () => {
+                        resolve("Coimbatore");
+                    }
+                );
+            });
+        }
+
+        fetchWeather();
+    </script>
+</body>
+</html>
